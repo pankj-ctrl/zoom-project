@@ -27,14 +27,14 @@ export default function VideoMeetComponent() {
 
     var socketRef = useRef();
     let socketIdRef = useRef();
-
+    let isStreamInitialized = useRef(false);
     let localVideoref = useRef();
 
     let [videoAvailable, setVideoAvailable] = useState(true);
 
     let [audioAvailable, setAudioAvailable] = useState(true);
 
-    let [video, setVideo] = useState([]);
+    let [video, setVideo] = useState(true);
 
     let [audio, setAudio] = useState();
 
@@ -68,7 +68,7 @@ export default function VideoMeetComponent() {
         console.log("HELLO")
         getPermissions();
 
-    })
+    },[])
 
     let getDislayMedia = () => {
         if (screen) {
@@ -121,15 +121,14 @@ export default function VideoMeetComponent() {
         }
     };
 
-    useEffect(() => {
-        if (video !== undefined && audio !== undefined) {
-            getUserMedia();
-            console.log("SET STATE HAS ", video, audio);
+   useEffect(() => {
+    if (video !== undefined && audio !== undefined && !isStreamInitialized.current) {
+        getUserMedia();
+        isStreamInitialized.current = true;
+        console.log("SET STATE HAS ", video, audio);
+    }
+}, [video, audio])
 
-        }
-
-
-    }, [video, audio])
     let getMedia = () => {
         setVideo(videoAvailable);
         setAudio(audioAvailable);
@@ -383,13 +382,28 @@ export default function VideoMeetComponent() {
     }
 
     let handleVideo = () => {
-        setVideo(!video);
-        // getUserMedia();
-    }
-    let handleAudio = () => {
-        setAudio(!audio)
-        // getUserMedia();
-    }
+    setVideo(prevVideo => {
+        const newState = !prevVideo;
+        if (window.localStream) {
+            window.localStream.getVideoTracks().forEach(track => {
+                track.enabled = newState; 
+            });
+        }
+        return newState;
+    });
+}
+
+let handleAudio = () => {
+    setAudio(prevAudio => {
+        const newState = !prevAudio;
+        if (window.localStream) {
+            window.localStream.getAudioTracks().forEach(track => {
+                track.enabled = newState; 
+            });
+        }
+        return newState;
+    });
+}
 
     useEffect(() => {
         if (screen !== undefined) {
